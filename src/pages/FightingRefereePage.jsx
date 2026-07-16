@@ -1,0 +1,212 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { socket } from '../socket.js';
+import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
+import FightVoteMatrix from '../components/FightVoteMatrix.jsx';
+import { useAreaState } from '../components/hooks.js';
+import { formatTime, resultText, statusLabel } from '../components/format.js';
+
+function contentTitle(state, match) {
+  const content = state?.contents?.find((item) => item.id === match?.contentId);
+  return content?.name || 'Đối kháng';
+}
+
+function sideStats(match, side) {
+  const reminders = match?.reminders?.[side] || {};
+  return [
+    { label: 'Nhắc lỗi', value: reminders.fault || 0 },
+    { label: 'Nhắc y tế', value: reminders.medical || 0 },
+    { label: 'Cảnh cáo', value: reminders.warnings || 0 }
+  ];
+}
+
+function RefereeSideCard({ match, side }) {
+  const isRed = side === 'red';
+  const unit = isRed ? match.redUnit : match.blueUnit;
+  const name = isRed ? match.redName : match.blueName;
+  const score = isRed ? match.redScore : match.blueScore;
+  const stats = sideStats(match, side);
+
+  return (
+    <section className={`referee-side-card ${isRed ? 'referee-red' : 'referee-blue'}`}>
+      <div className="referee-unit-name">{unit || 'Chưa có đơn vị'}</div>
+      <div className="referee-score-number">{score}</div>
+      <div className="referee-athlete-name">{name}</div>
+      <div className="referee-stats-row">
+        {stats.map((item) => (
+          <div className="referee-stat" key={item.label}>
+            <span>{item.label}</span>
+            <strong>{item.value}</strong>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default function FightingRefereePage() {
+  const { areaId } = useParams();
+  const { state, error } = useAreaState(areaId);
+  const [manualSeconds, setManualSeconds] = useState(120);
+  const [breakSeconds, setBreakSeconds] = useState(45);
+  const match = state?.currentFightMatch;
+  const matches = useMemo(() => [...(state?.fightMatches || [])].sort((a, b) => a.orderNo - b.orderNo), [state]);
+  const screenUrl = `${window.location.origin}/fighting/area/${areaId}/screen`;
+
+  useEffect(() => {
+    if (!match) return;
+    setManualSeconds(Number(match.remainingSeconds ?? match.roundSeconds ?? 120));
+    setBreakSeconds(Number(match.breakSeconds ?? 45));
+  }, [match?.id]);
+
+  function emit(event, payload = {}) {
+    socket.emit(event, { areaId, ...payload });
+  }
+
+  function selectMatch(matchId) {
+    socket.emit('fight:select-match', { areaId, matchId });
+  }
+
+  function copyScreenUrl() {
+    navigator.clipboard?.writeText(screenUrl);
+    alert('Đã copy link màn hình tổng điểm');
+  }
+
+  return (
+    <div className="public-page referee-page">
+      <PageHeader
+        title={`Tổng trọng tài - ${state?.area?.name || areaId}`}
+        subtitle="Tổng trọng tài cố định theo sân, không nằm trong 5 giám định, điều khiển trận và chia sẻ màn tổng điểm."
+        actions={<button className="btn btn-primary" onClick={copyScreenUrl}>Chia sẻ màn tổng điểm</button>}
+      />
+      {error ? <div className="alert">{error}</div> : null}
+      <div className="referee-grid">
+        <Card className="score-board-card">
+          {match ? (
+            <>
+              <div className="fight-match-strip">
+                <span>Trận {match.orderNo}</span>
+                <strong>{contentTitle(state, match)}</strong>
+                <StatusBadge>{statusLabel(match.status)}</StatusBadge>
+              </div>
+              <div className="referee-fight-display">
+                <section className="referee-time-top">
+                  <span>Thời gian</span>
+                  <strong>{formatTime(match.remainingSeconds)}</strong>
+                  <small>Nghỉ giữa hiệp: {formatTime(match.breakSeconds ?? 45)}</small>
+                </section>
+
+                <div className="referee-score-layout">
+                  <RefereeSideCard match={match} side="red" />
+                  <section className="referee-center-card">
+                    <span>Hiệp</span>
+                    <strong>{match.round}</strong>
+                    <StatusBadge>{statusLabel(match.status)}</StatusBadge>
+                    {match.goldenPoint ? <div className="golden-label">ĐIỂM VÀNG</div> : null}
+                  </section>
+                  <RefereeSideCard match={match} side="blue" />
+                </div>
+
+                <div className="center-meta"><strong>Kết quả:</strong> {resultText(match)}</div>
+
+                <div className="referee-vote-row">
+                  <FightVoteMatrix area={state?.area} match={match} side="red" />
+                  <FightVoteMatrix area={state?.area} match={match} side="blue" />
+                </div>
+              </div>
+            </>
+          ) : <p>Chưa chọn trận.</p>}
+        </Card>
+        <Card>
+          <h2>Danh sách giám định</h2>
+          <div className="judge-slot-grid">
+            {Object.values(state?.area?.judgeSlots || {}).map((slot) => (
+              <div className="judge-slot" key={slot.judgeNo}>
+                <strong>GĐ {slot.judgeNo}</strong>
+                <StatusBadge tone={slot.status === 'connected' ? 'success' : 'neutral'}>{statusLabel(slot.status)}</StatusBadge>
+                <small>{slot.name || 'Chưa có'}</small>
+                <button className="btn btn-small" onClick={() => emit('referee:reset-judge', { judgeNo: slot.judgeNo })}>Reset</button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="two-col">
+        <Card>
+          <h2>Điều khiển trận</h2>
+          <div className="button-grid">
+            <button className="btn btn-primary" onClick={() => emit('fight:start')}>Bắt đầu</button>
+            <button className="btn" onClick={() => emit('fight:pause')}>Tạm dừng</button>
+            <button className="btn" onClick={() => emit('fight:resume')}>Tiếp tục</button>
+            <button className="btn" onClick={() => emit('fight:next-round')}>Sang hiệp</button>
+            <button className="btn" onClick={() => emit('fight:end')}>Kết thúc</button>
+            <button className="btn" onClick={() => emit('fight:skip')}>Tạm bỏ qua</button>
+            <button className="btn" onClick={() => emit('fight:undo')}>Hoàn tác điểm cuối</button>
+          </div>
+          <div className="timer-settings-grid">
+            <label className="field-label">
+              <span>Thời gian hiện tại (giây)</span>
+              <div className="inline-form compact-form">
+                <input type="number" min="0" value={manualSeconds} onChange={(e) => setManualSeconds(Number(e.target.value))} />
+                <button className="btn" type="button" onClick={() => emit('fight:set-time', { seconds: manualSeconds })}>Chỉnh thời gian</button>
+              </div>
+            </label>
+            <label className="field-label">
+              <span>Nghỉ giữa hiệp (giây)</span>
+              <div className="inline-form compact-form">
+                <input type="number" min="0" value={breakSeconds} onChange={(e) => setBreakSeconds(Number(e.target.value))} />
+                <button className="btn" type="button" onClick={() => emit('fight:set-break-time', { seconds: breakSeconds })}>Lưu giờ nghỉ</button>
+              </div>
+            </label>
+          </div>
+        </Card>
+        <Card>
+          <h2>Cộng/trừ trực tiếp</h2>
+          <div className="manual-score-grid">
+            <button className="btn red-button" onClick={() => emit('fight:manual-score', { side: 'red', points: 1 })}>Đỏ +1</button>
+            <button className="btn red-button" onClick={() => emit('fight:manual-score', { side: 'red', points: 2 })}>Đỏ +2</button>
+            <button className="btn red-button outline" onClick={() => emit('fight:manual-score', { side: 'red', points: -1 })}>Đỏ -1</button>
+            <button className="btn red-button outline" onClick={() => emit('fight:manual-score', { side: 'red', points: -2 })}>Đỏ -2</button>
+            <button className="btn blue-button" onClick={() => emit('fight:manual-score', { side: 'blue', points: 1 })}>Xanh +1</button>
+            <button className="btn blue-button" onClick={() => emit('fight:manual-score', { side: 'blue', points: 2 })}>Xanh +2</button>
+            <button className="btn blue-button outline" onClick={() => emit('fight:manual-score', { side: 'blue', points: -1 })}>Xanh -1</button>
+            <button className="btn blue-button outline" onClick={() => emit('fight:manual-score', { side: 'blue', points: -2 })}>Xanh -2</button>
+          </div>
+          <h3>Nhắc lỗi / y tế</h3>
+          <div className="manual-score-grid">
+            <button className="btn" onClick={() => emit('fight:reminder', { side: 'red', kind: 'fault' })}>Đỏ nhắc lỗi</button>
+            <button className="btn" onClick={() => emit('fight:reminder', { side: 'red', kind: 'medical' })}>Đỏ nhắc y tế</button>
+            <button className="btn" onClick={() => emit('fight:reminder', { side: 'blue', kind: 'fault' })}>Xanh nhắc lỗi</button>
+            <button className="btn" onClick={() => emit('fight:reminder', { side: 'blue', kind: 'medical' })}>Xanh nhắc y tế</button>
+          </div>
+          <h3>Chiến thắng trực tiếp</h3>
+          <div className="manual-score-grid two">
+            <button className="btn red-button" onClick={() => emit('fight:win', { winner: 'red' })}>Đỏ thắng</button>
+            <button className="btn blue-button" onClick={() => emit('fight:win', { winner: 'blue' })}>Xanh thắng</button>
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <h2>Danh sách trận sân này</h2>
+        <div className="queue-list">
+          {matches.map((item) => (
+            <div className={`queue-row ${match?.id === item.id ? 'active' : ''}`} key={item.id}>
+              <span>{item.orderNo}. {item.redName} vs {item.blueName}</span>
+              <StatusBadge>{statusLabel(item.status)}</StatusBadge>
+              <strong>{item.redScore} - {item.blueScore}</strong>
+              <button className="btn btn-small" onClick={() => selectMatch(item.id)}>Chọn trận</button>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card>
+        <h2>Lịch sử điểm</h2>
+        <div className="history-list">
+          {[...(match?.history || [])].reverse().slice(0, 12).map((item) => <div key={item.id}>{item.label}</div>)}
+        </div>
+      </Card>
+    </div>
+  );
+}
