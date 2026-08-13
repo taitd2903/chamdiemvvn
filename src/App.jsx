@@ -17,25 +17,49 @@ import FormScreenPage from './pages/FormScreenPage.jsx';
 import FightingJudgePage from './pages/FightingJudgePage.jsx';
 import FightingRefereePage from './pages/FightingRefereePage.jsx';
 import FightingScreenPage from './pages/FightingScreenPage.jsx';
+import AdminUsers from './pages/AdminUsers.jsx';
+import { useAuth } from './auth.jsx';
+import SigmaPage from './pages/SigmaPage.jsx';
+import AdminWeighIns from './pages/AdminWeighIns.jsx';
+import AccountPage from './pages/AccountPage.jsx';
+import PublicTournamentPage from './pages/PublicTournamentPage.jsx';
 
-function AdminRoute({ children }) {
-  return <Layout>{children}</Layout>;
+function ProtectedRoute({ role, children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="center-page">Đang kiểm tra đăng nhập...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== role) return <Navigate to={user.role === 'admin' ? '/admin' : user.role === 'weigh_in' ? '/weigh-in' : '/unit'} replace />;
+  return <Layout role={role}>{children}</Layout>;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/admin" replace />} />
+      <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-      <Route path="/admin/areas" element={<AdminRoute><AdminAreas /></AdminRoute>} />
-      <Route path="/admin/contents" element={<AdminRoute><AdminContents /></AdminRoute>} />
-      <Route path="/admin/athletes" element={<AdminRoute><AdminAthletes /></AdminRoute>} />
-      <Route path="/admin/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
-      <Route path="/admin/matches" element={<AdminRoute><AdminMatches /></AdminRoute>} />
-      <Route path="/admin/results" element={<AdminRoute><AdminResults /></AdminRoute>} />
-      <Route path="/admin/links" element={<AdminRoute><AdminLinks /></AdminRoute>} />
-      <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+      <Route path="/weigh-in/login" element={<LoginPage weighIn />} />
+      <Route path="/public" element={<PublicTournamentPage />} />
+      <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute role="admin"><AdminUsers /></ProtectedRoute>} />
+      <Route path="/admin/areas" element={<ProtectedRoute role="admin"><AdminAreas /></ProtectedRoute>} />
+      <Route path="/admin/contents" element={<ProtectedRoute role="admin"><AdminContents /></ProtectedRoute>} />
+      <Route path="/admin/athletes" element={<ProtectedRoute role="admin"><AdminAthletes /></ProtectedRoute>} />
+      <Route path="/admin/registrations" element={<ProtectedRoute role="admin"><AdminRegistrations /></ProtectedRoute>} />
+      <Route path="/admin/matches" element={<ProtectedRoute role="admin"><AdminMatches /></ProtectedRoute>} />
+      <Route path="/admin/results" element={<ProtectedRoute role="admin"><AdminResults /></ProtectedRoute>} />
+      <Route path="/admin/links" element={<ProtectedRoute role="admin"><AdminLinks /></ProtectedRoute>} />
+      <Route path="/admin/settings" element={<ProtectedRoute role="admin"><AdminSettings /></ProtectedRoute>} />
+      <Route path="/admin/sigma" element={<ProtectedRoute role="admin"><SigmaPage /></ProtectedRoute>} />
+      <Route path="/admin/weigh-ins" element={<ProtectedRoute role="admin"><AdminWeighIns /></ProtectedRoute>} />
+      <Route path="/admin/statistics" element={<ProtectedRoute role="admin"><PublicTournamentPage embedded /></ProtectedRoute>} />
+      <Route path="/admin/account" element={<ProtectedRoute role="admin"><AccountPage /></ProtectedRoute>} />
+      <Route path="/unit" element={<ProtectedRoute role="unit_owner"><AdminAthletes /></ProtectedRoute>} />
+      <Route path="/unit/registrations" element={<ProtectedRoute role="unit_owner"><AdminRegistrations /></ProtectedRoute>} />
+      <Route path="/unit/sigma" element={<ProtectedRoute role="unit_owner"><SigmaPage /></ProtectedRoute>} />
+      <Route path="/unit/statistics" element={<ProtectedRoute role="unit_owner"><PublicTournamentPage embedded /></ProtectedRoute>} />
+      <Route path="/unit/account" element={<ProtectedRoute role="unit_owner"><AccountPage /></ProtectedRoute>} />
+      <Route path="/weigh-in" element={<ProtectedRoute role="weigh_in"><AdminWeighIns /></ProtectedRoute>} />
+      <Route path="/weigh-in/account" element={<ProtectedRoute role="weigh_in"><AccountPage /></ProtectedRoute>} />
       <Route path="/judge" element={<JudgeJoinPage />} />
       <Route path="/forms/area/:areaId/referee" element={<FormRefereePage />} />
       <Route path="/forms/area/:areaId/judge/:judgeNo" element={<FormJudgePage />} />
@@ -43,7 +67,7 @@ export default function App() {
       <Route path="/fighting/area/:areaId/referee" element={<FightingRefereePage />} />
       <Route path="/fighting/area/:areaId/judge/:judgeNo" element={<FightingJudgePage />} />
       <Route path="/fighting/area/:areaId/screen" element={<FightingScreenPage />} />
-      <Route path="*" element={<Navigate to="/admin" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

@@ -12,14 +12,15 @@ function contentTitle(state, match) {
 function sideStats(match, side) {
   const reminders = match?.reminders?.[side] || {};
   return [
-    { label: 'Nhắc lỗi', value: reminders.fault || 0 },
-    { label: 'Nhắc y tế', value: reminders.medical || 0 },
-    { label: 'Cảnh cáo', value: reminders.warnings || 0 }
+    { label: 'Nhắc nhở', icon: '✋', iconClass: 'reminder-hand', value: reminders.fault || 0 },
+    { label: 'Cứu thương', icon: '✚', iconClass: 'medical-cross', value: reminders.medical || 0 },
+    { label: 'Cảnh cáo', icon: '', iconClass: 'warning-sign', value: reminders.warnings || 0 }
   ];
 }
 
 function FightProjectionSide({ match, side }) {
   const isRed = side === 'red';
+  const isWinner = match.status === 'finished' && match.winner === side;
   const unit = isRed ? match.redUnit : match.blueUnit;
   const name = isRed ? match.redName : match.blueName;
   const score = isRed ? match.redScore : match.blueScore;
@@ -27,7 +28,7 @@ function FightProjectionSide({ match, side }) {
   const medicalSeconds = Number(match?.medicalTimers?.[side] || 0);
 
   return (
-    <section className={`projection-side-card ${isRed ? 'projection-red' : 'projection-blue'}`}>
+    <section className={`projection-side-card ${isRed ? 'projection-red' : 'projection-blue'} ${isWinner ? 'projection-winner' : ''}`}>
       <div className="projection-unit-name">{unit || 'Chưa có đơn vị'}</div>
       <div className="projection-score-number">{score}</div>
       <div className="projection-athlete-name">{name}</div>
@@ -35,7 +36,7 @@ function FightProjectionSide({ match, side }) {
       <div className="projection-stats-row">
         {stats.map((item) => (
           <div className="projection-stat" key={item.label}>
-            <span>{item.label}</span>
+            <span className="projection-stat-label"><i className={`projection-stat-icon ${item.iconClass}`} aria-hidden="true">{item.icon}</i>{item.label}</span>
             <strong>{item.value}</strong>
           </div>
         ))}

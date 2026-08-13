@@ -16,6 +16,7 @@ export default function AdminMatches() {
   const [fightMatch, setFightMatch] = useState(blankFightMatch);
   const [entryFilters, setEntryFilters] = useState(blankEntryFilters);
   const [fightFilters, setFightFilters] = useState(blankFightFilters);
+  const [autoForm, setAutoForm] = useState({ areaId: '', contentId: '' });
 
   const areas = state?.areas || [];
   const contents = state?.contents || [];
@@ -111,6 +112,12 @@ export default function AdminMatches() {
     }
   }
 
+  async function createAutomaticFormSchedule(event) {
+    event.preventDefault();
+    try { await api.createFormSchedule(autoForm); setAutoForm({ areaId: '', contentId: '' }); reload(); }
+    catch (err) { setError(err.message); }
+  }
+
   async function selectForm(entryId) {
     try {
       await api.selectFormEntry(entryId);
@@ -142,6 +149,11 @@ export default function AdminMatches() {
     <>
       <PageHeader title="Tạo lượt thi / trận đấu" subtitle="Chỉ chọn thí sinh đã đăng ký; hệ thống tự lấy đơn vị, năm sinh, giới tính, lứa tuổi, cân nặng thực tế và hạng cân từ nội dung." />
       {error ? <div className="alert">{error}</div> : null}
+      <Card><h2>Tạo lượt Quyền tự động sau khi chốt đăng ký</h2><form className="inline-form" onSubmit={createAutomaticFormSchedule}>
+        <select value={autoForm.contentId} onChange={(e) => setAutoForm({ ...autoForm, contentId: e.target.value })}><option value="">Chọn nội dung Quyền</option>{formContents.filter((content) => !formEntries.some((entry) => entry.contentId === content.id)).map((content) => <option key={content.id} value={content.id}>{content.name}</option>)}</select>
+        <select value={autoForm.areaId} onChange={(e) => setAutoForm({ ...autoForm, areaId: e.target.value })}><option value="">Chọn sân Quyền</option>{formAreas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}</select>
+        <button className="btn btn-primary" disabled={!autoForm.contentId || !autoForm.areaId}>Tạo lượt tự động</button>
+      </form></Card>
       <div className="two-col">
         <Card>
           <h2>Tạo lượt thi Quyền</h2>

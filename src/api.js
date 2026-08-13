@@ -1,9 +1,17 @@
 const API_URL = import.meta.env.VITE_API_URL || '';
+const TOKEN_KEY = 'vvn_auth_token';
+
+export const authStorage = {
+  getToken: () => localStorage.getItem(TOKEN_KEY) || '',
+  setToken: (token) => token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY),
+  clear: () => localStorage.removeItem(TOKEN_KEY)
+};
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(authStorage.getToken() ? { Authorization: `Bearer ${authStorage.getToken()}` } : {}),
       ...(options.headers || {})
     },
     ...options
@@ -20,10 +28,30 @@ async function request(path, options = {}) {
 
 export const api = {
   apiUrl: API_URL,
+  login: (payload) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  me: () => request('/api/auth/me'),
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+  changePassword: (payload) => request('/api/auth/password', { method: 'PATCH', body: JSON.stringify(payload) }),
+  getPublicTournament: () => request('/api/public/tournament'),
+  getUsers: () => request('/api/users'),
+  createUser: (payload) => request('/api/users', { method: 'POST', body: JSON.stringify(payload) }),
+  resetUserPassword: (id, password) => request(`/api/users/${id}/password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
+  updateUserStatus: (id, active) => request(`/api/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  getBrackets: () => request('/api/draws/brackets'),
+  drawFighting: (payload) => request('/api/draws/fighting', { method: 'POST', body: JSON.stringify(payload) }),
+  createFormSchedule: (payload) => request('/api/draws/forms', { method: 'POST', body: JSON.stringify(payload) }),
+  getRegistrationStatus: () => request('/api/registrations/status'),
+  lockRegistrations: () => request('/api/registrations/lock', { method: 'POST' }),
+  unlockRegistrations: () => request('/api/registrations/unlock', { method: 'POST' }),
   getState: () => request('/api/state'),
   getSettings: () => request('/api/settings'),
   updateSettings: (payload) => request('/api/settings', { method: 'PUT', body: JSON.stringify(payload) }),
   resetTournamentData: () => request('/api/settings/reset-tournament-data', { method: 'POST' }),
+  clearFightingData: () => request('/api/settings/clear-fighting-data', { method: 'POST' }),
+  getWeighIns: () => request('/api/weigh-ins'),
+  updateWeighIn: (athleteId, contentId, payload) => request(`/api/weigh-ins/${athleteId}/${contentId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  lockWeighIn: (athleteId, contentId) => request(`/api/weigh-ins/${athleteId}/${contentId}/lock`, { method: 'POST' }),
+  unlockWeighIn: (athleteId, contentId) => request(`/api/weigh-ins/${athleteId}/${contentId}/unlock`, { method: 'POST' }),
   getAreas: () => request('/api/areas'),
   getArea: (areaId) => request(`/api/areas/${areaId}`),
   createArea: (payload) => request('/api/areas', { method: 'POST', body: JSON.stringify(payload) }),

@@ -17,6 +17,7 @@ export function statusLabel(status) {
     cancelled: 'Hủy',
     break: 'Nghỉ giữa hiệp',
     golden: 'Điểm vàng',
+    decision: 'Chờ trọng tài quyết định',
     empty: 'Trống',
     connected: 'Đã kết nối',
     disconnected: 'Mất kết nối'

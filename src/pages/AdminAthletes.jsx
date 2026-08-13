@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader } from '../components/Layout.jsx';
 import { useGlobalState } from '../components/hooks.js';
+import { useAuth } from '../auth.jsx';
 import {
   athleteMatchesWeightClass,
   deriveAgeGroup,
@@ -18,6 +19,8 @@ const blankForm = { name: '', unit: '', birthYear: '', gender: '', weightKg: '' 
 const blankFilters = { keyword: '', unit: '', gender: '', ageGroup: '', weightClass: '', birthYear: '' };
 
 export default function AdminAthletes() {
+  const { user } = useAuth();
+  const isUnitOwner = user?.role === 'unit_owner';
   const { state, error, reload, setError } = useGlobalState();
   const [form, setForm] = useState(blankForm);
   const [filters, setFilters] = useState(blankFilters);
@@ -74,14 +77,14 @@ export default function AdminAthletes() {
 
   return (
     <>
-      <PageHeader title="Quản lý thí sinh / đội" subtitle="Thí sinh chỉ nhập cân nặng thực tế. Hạng cân được hệ thống tự đối chiếu từ các nội dung đã tạo khi đăng ký." />
+      <PageHeader title={isUnitOwner ? `Thí sinh - ${user.unitName}` : 'Quản lý thí sinh / đội'} subtitle="Thí sinh không cần tài khoản. Nhập cân nặng thực tế để hệ thống đối chiếu nội dung phù hợp khi đăng ký." />
       {error ? <div className="alert">{error}</div> : null}
       <Card>
         <h2>Thêm thí sinh / đội</h2>
         <form className="stack-form" onSubmit={submit}>
           <div className="form-grid-3">
             <input placeholder="Họ tên / tên đội" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            <input placeholder="Đơn vị / CLB" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+            <input placeholder="Đơn vị / CLB" disabled={isUnitOwner} value={isUnitOwner ? user.unitName : form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
             <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
               <option value="">Chọn giới tính</option>
               <option value="male">Nam</option>

@@ -4,25 +4,42 @@ import { Card, PageHeader } from '../components/Layout.jsx';
 import { useGlobalState } from '../components/hooks.js';
 import { typeLabel } from '../components/format.js';
 import { athleteDisplay, contentEligibilityText, contentWeightClassLabel, deriveAgeGroup, formatAgeInfo, formatRegistrationWeightInfo, genderLabel, getContentWeightClassOptions, getUniqueValues, matchesContentCriteria, normalizeText } from '../components/athleteMeta.js';
+import { useAuth } from '../auth.jsx';
 
 const blankFilters = { keyword: '', contentId: '', unit: '', gender: '', ageGroup: '', weightClass: '', birthYear: '' };
 
 export default function AdminRegistrations() {
+  const { user } = useAuth();
   const { state, error, reload, setError } = useGlobalState();
   const [registrations, setRegistrations] = useState([]);
   const [form, setForm] = useState({ athleteId: '', contentId: '' });
   const [filters, setFilters] = useState(blankFilters);
+  const [locked, setLocked] = useState(false);
 
   async function loadRegs() {
     const rows = await api.getRegistrations();
     setRegistrations(rows);
   }
 
-  useEffect(() => { loadRegs().catch((err) => setError(err.message)); }, []);
+  useEffect(() => {
+    loadRegs().catch((err) => setError(err.message));
+    api.getRegistrationStatus().then((data) => setLocked(data.locked)).catch((err) => setError(err.message));
+  }, []);
+
+  async function lockRegistrations() {
+    if (!window.confirm('Chốt toàn bộ đăng ký? Sau bước này không thể thêm, xóa hay đổi đăng ký.')) return;
+    try { await api.lockRegistrations(); setLocked(true); } catch (err) { setError(err.message); }
+  }
+
+  async function unlockRegistrations() {
+    if (!window.confirm('Mở lại đăng ký để bổ sung hoặc chỉnh sửa danh sách?')) return;
+    try { await api.unlockRegistrations(); setLocked(false); } catch (err) { setError(err.message); }
+  }
 
   const athletes = state?.athletes || [];
   const contents = state?.contents || [];
   const selectedContent = contents.find((content) => content.id === form.contentId) || null;
+  const selectedAthlete = athletes.find((athlete) => athlete.id === form.athleteId) || null;
   const filterContent = contents.find((content) => content.id === filters.contentId) || null;
   const units = getUniqueValues(athletes, 'unit');
   const weightClasses = getContentWeightClassOptions(contents);
@@ -83,8 +100,9 @@ export default function AdminRegistrations() {
 
   return (
     <>
-      <PageHeader title="Đăng ký nội dung thi" subtitle="Chọn nội dung trước; hệ thống tự lọc thí sinh theo giới tính, năm sinh/lứa tuổi và cân nặng thực tế so với hạng cân của nội dung." />
+      <PageHeader title="Đăng ký nội dung thi" subtitle="Tạo thí sinh chưa phải là đăng ký. Cần chọn nội dung và gắn từng thí sinh vào nội dung trước khi chốt." actions={user.role === 'admin' ? (locked ? <button className="btn" onClick={unlockRegistrations}>Mở lại đăng ký</button> : <button className="btn btn-primary" onClick={lockRegistrations}>Chốt đăng ký</button>) : null} />
       {error ? <div className="alert">{error}</div> : null}
+      {locked ? <div className="alert registration-locked-banner">Đăng ký đã được Admin chốt. Danh sách hiện chỉ được xem.</div> : null}
       <Card>
         <h2>Đăng ký thí sinh vào nội dung</h2>
         <form className="stack-form" onSubmit={submit}>
@@ -97,9 +115,10 @@ export default function AdminRegistrations() {
               <option value="">{form.contentId ? 'Chọn thí sinh phù hợp' : 'Chọn nội dung trước'}</option>
               {athleteOptions.map((athlete) => <option key={athlete.id} value={athlete.id}>{athleteDisplay(athlete)}</option>)}
             </select>
-            <button className="btn btn-primary" disabled={!form.contentId || !form.athleteId}>Đăng ký</button>
+            <button className="btn btn-primary" disabled={locked || !form.contentId || !form.athleteId}>Đăng ký</button>
           </div>
           {selectedContent ? <p className="muted">Tiêu chí nội dung: {contentEligibilityText(selectedContent) || 'Không giới hạn'}. Danh sách thí sinh đã được lọc và loại người đã đăng ký nội dung này.</p> : null}
+          {selectedContent ? <p className="muted"><strong>Giới hạn toàn đoàn:</strong> {selectedContent.type === 'form' ? (state?.settings?.formContentLimitPerUnit ? `tối đa ${state.settings.formContentLimitPerUnit} nội dung Quyền/đoàn` : 'không giới hạn nội dung Quyền') : (state?.settings?.fightingContentLimitPerUnit ? `tối đa ${state.settings.fightingContentLimitPerUnit} nội dung Đối kháng/đoàn` : 'không giới hạn nội dung Đối kháng')}{selectedAthlete ? ` · Đang đăng ký cho ${selectedAthlete.unit || 'đơn vị chưa đặt tên'}` : ''}.</p> : null}
         </form>
       </Card>
       <Card>
@@ -147,7 +166,7 @@ export default function AdminRegistrations() {
                   <td>{formatRegistrationWeightInfo(row.athlete, row.content)}</td>
                   <td>{row.content?.name}</td>
                   <td>{typeLabel(row.content?.type)}</td>
-                  <td><button className="btn btn-danger" onClick={() => remove(row.id)}>Xóa</button></td>
+                  <td>{!locked ? <button className="btn btn-danger" onClick={() => remove(row.id)}>Xóa</button> : 'Đã chốt'}</td>
                 </tr>
               ))}
               {filteredRegistrations.length === 0 ? <tr><td colSpan="8" className="empty">Không có đăng ký phù hợp bộ lọc.</td></tr> : null}
