@@ -24,12 +24,14 @@ function FightProjectionSide({ match, side }) {
   const name = isRed ? match.redName : match.blueName;
   const score = isRed ? match.redScore : match.blueScore;
   const stats = sideStats(match, side);
+  const medicalSeconds = Number(match?.medicalTimers?.[side] || 0);
 
   return (
     <section className={`projection-side-card ${isRed ? 'projection-red' : 'projection-blue'}`}>
       <div className="projection-unit-name">{unit || 'Chưa có đơn vị'}</div>
       <div className="projection-score-number">{score}</div>
       <div className="projection-athlete-name">{name}</div>
+      {medicalSeconds > 0 ? <div className="medical-countdown">Y TẾ · {formatTime(medicalSeconds)}</div> : null}
       <div className="projection-stats-row">
         {stats.map((item) => (
           <div className="projection-stat" key={item.label}>

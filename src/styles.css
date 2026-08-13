@@ -1779,6 +1779,18 @@ table { min-width: 760px; }
   border-top: 1px solid rgba(255,255,255,.16);
   overflow-wrap: anywhere;
 }
+.medical-countdown {
+  width: fit-content;
+  margin: 8px auto;
+  padding: 8px 16px;
+  border: 2px solid #fbbf24;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .82);
+  color: #fef3c7;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 1000;
+  letter-spacing: .06em;
+}
 .referee-stats-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1866,3 +1878,143 @@ table { min-width: 760px; }
 }
 .fighting-screen .vote-matrix-screen.vote-matrix-red { border-color: rgba(239, 68, 68, .55) !important; }
 .fighting-screen .vote-matrix-screen.vote-matrix-blue { border-color: rgba(59, 130, 246, .55) !important; }
+
+.referee-operation-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(340px, .9fr);
+  gap: 16px;
+  align-items: start;
+}
+.referee-operation-controls {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.referee-operation-controls .card { margin-bottom: 0; }
+.referee-control-card .button-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.referee-control-card .main-match-control { grid-column: 1 / -1; min-height: 44px; font-size: 15px; font-weight: 900; }
+.referee-control-card .timer-settings-grid { grid-template-columns: 1fr; }
+.referee-control-card .inline-form { flex-wrap: nowrap; }
+.referee-control-card .inline-form input { min-width: 0; }
+.referee-judges-last { margin-top: 4px; }
+
+@media (max-width: 1100px) {
+  .referee-operation-grid { grid-template-columns: 1fr; }
+  .referee-operation-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .referee-operation-controls { grid-template-columns: 1fr; }
+  .referee-control-card .button-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* --------------------------------------------------------------------------
+   1440px desktop optimization
+   Keeps the working mobile/tablet rules intact while making common 1440px
+   laptops and venue control screens use the available space efficiently.
+   -------------------------------------------------------------------------- */
+@media (min-width: 1280px) and (max-width: 1599px) {
+  html { font-size: 15px; }
+
+  .app-shell { grid-template-columns: 224px minmax(0, 1fr); }
+  .sidebar { padding: 20px 14px; }
+  .brand { margin-bottom: 18px; font-size: 22px; }
+  .sidebar nav { gap: 4px; }
+  .sidebar nav a { padding: 10px 12px; border-radius: 10px; }
+  .main-content { padding: 22px 24px 28px; }
+
+  .page-header { margin-bottom: 16px; gap: 16px; }
+  .page-header h1 { font-size: 27px; line-height: 1.15; }
+  .page-header p { margin-top: 4px; }
+  .card { margin-bottom: 14px; padding: 16px; border-radius: 15px; }
+  .card h2 { margin-bottom: 12px; font-size: 18px; }
+  .card h3 { margin: 14px 0 8px; }
+  .stats-grid, .two-col { gap: 14px; }
+  .stats-grid { margin-bottom: 14px; }
+  .stats-grid .card strong { font-size: 30px; }
+
+  input, select, textarea { min-height: 38px; padding: 8px 10px; }
+  .btn { min-height: 36px; padding: 0 12px; border-radius: 10px; }
+  .btn-large { min-height: 50px; }
+  .stack-form { gap: 8px; }
+  .filter-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .form-grid-3 { gap: 10px; }
+
+  table { font-size: 13px; }
+  th, td { padding: 9px 10px; }
+  th { white-space: nowrap; }
+  .badge { min-height: 24px; padding: 0 8px; font-size: 12px; }
+  .row-actions { gap: 6px; }
+  .row-actions .btn { min-height: 32px; font-size: 12px; }
+
+  .public-page { width: 100%; max-width: 1440px; padding: 18px 22px 24px; }
+  .public-page.compact { max-width: 1120px; }
+  .referee-grid { grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr); gap: 14px; }
+  .referee-operation-grid { grid-template-columns: minmax(0, 2.15fr) minmax(360px, .85fr); gap: 12px; }
+  .referee-operation-controls { gap: 10px; }
+  .referee-operation-controls .card { padding: 12px; }
+  .referee-operation-controls .card h2 { margin-bottom: 8px; font-size: 17px; }
+  .referee-operation-controls .card h3 { margin: 9px 0 6px; font-size: 15px; }
+  .referee-control-card .button-grid { gap: 6px; }
+  .referee-control-card .btn { min-height: 34px; padding: 0 8px; font-size: 12px; }
+  .referee-control-card .timer-settings-grid { gap: 6px; margin-top: 8px; }
+  .referee-control-card .field-label { gap: 3px; font-size: 12px; }
+  .referee-control-card .compact-form { margin-top: 2px; }
+  .referee-control-card .compact-form input { min-height: 34px; }
+  .referee-score-actions .manual-score-grid { gap: 5px; }
+  .referee-judges-last .judge-slot-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .judge-slot-grid { grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; }
+  .judge-slot { padding: 9px; }
+  .fight-match-strip { min-height: 46px; padding: 8px 14px; }
+
+  .referee-page .referee-time-top { padding: 9px 14px; }
+  .referee-page .referee-time-top strong { font-size: clamp(34px, 3.4vw, 48px); }
+  .referee-page .referee-score-layout { gap: 12px; }
+  .referee-page .referee-side-card,
+  .referee-page .referee-center-card { min-height: 210px; padding: 14px; }
+  .referee-page .referee-score-number { font-size: clamp(58px, 6vw, 82px); }
+  .referee-page .referee-athlete-name { font-size: clamp(18px, 1.8vw, 25px); }
+  .referee-page .referee-stat strong { font-size: 22px; }
+  .referee-page .referee-vote-row { gap: 10px; }
+  .referee-page .vote-indicator { min-height: 36px; }
+  .referee-page .button-grid { gap: 7px; }
+  .referee-page .manual-score-grid { gap: 7px; }
+  .timer-settings-grid { gap: 10px; }
+  .queue-row { padding: 9px 10px; }
+
+  .fighting-screen { padding: 16px 20px 20px; }
+  .fighting-screen .fight-presentation-title { min-height: 58px; margin-bottom: 8px; }
+  .fighting-screen .fight-presentation-title h1 { font-size: clamp(24px, 2.4vw, 34px); }
+  .fighting-screen .fight-category-strip { min-height: 44px; margin-bottom: 10px; }
+  .fighting-screen .projection-timer-top { margin-bottom: 10px; padding: 7px 14px; }
+  .fighting-screen .projection-timer-top strong { font-size: clamp(48px, 5.2vw, 72px); }
+  .fighting-screen .projection-fight-board { gap: 12px; }
+  .fighting-screen .projection-side-card,
+  .fighting-screen .projection-center-card { min-height: 300px; padding: 16px; }
+  .fighting-screen .projection-score-number { font-size: clamp(100px, 11vw, 150px); }
+  .fighting-screen .projection-athlete-name { font-size: clamp(22px, 2.3vw, 32px); }
+  .fighting-screen .projection-unit-name { font-size: clamp(17px, 1.5vw, 22px); }
+  .fighting-screen .projection-vote-row { gap: 12px; margin-top: 10px; }
+  .fighting-screen .vote-matrix-screen { padding: 0; }
+  .fighting-screen .screen-result { margin: 10px 0; font-size: 28px; }
+
+  .form-presentation-page { padding: 18px 24px; }
+  .form-presentation-page .presentation-header { min-height: 64px; margin-bottom: 12px; }
+  .form-presentation-page .presentation-header h1 { font-size: clamp(24px, 2.4vw, 34px); }
+  .form-presentation-page .presentation-content-title { margin-bottom: 12px; padding: 10px 18px; font-size: clamp(24px, 2.3vw, 32px); }
+  .form-presentation-page .presentation-info {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 24px;
+    row-gap: 5px;
+    margin-bottom: 14px;
+    padding: 12px 18px;
+    font-size: clamp(16px, 1.35vw, 19px);
+  }
+  .form-presentation-page .presentation-info p:first-child { grid-column: span 2; }
+  .form-presentation-page .presentation-judge-row { gap: 12px; margin-top: 14px; }
+  .form-presentation-page .presentation-score-box { min-height: 108px; padding: 10px; }
+  .form-presentation-page .presentation-score-box strong { font-size: clamp(38px, 4vw, 56px); }
+  .form-presentation-page .presentation-waiting { margin: 8px auto; padding: 10px 18px; font-size: clamp(20px, 2vw, 28px); }
+  .form-presentation-page .presentation-total { gap: 6px; margin-top: 8px; }
+  .form-presentation-page .presentation-total span { font-size: clamp(28px, 3vw, 40px); }
+  .form-presentation-page .presentation-total strong { min-height: 92px; font-size: clamp(52px, 6vw, 82px); }
+}

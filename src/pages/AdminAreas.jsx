@@ -81,7 +81,7 @@ export default function AdminAreas() {
           {form.type === 'fighting' ? (
             <select value={form.judgeCount} onChange={(e) => setForm({ ...form, judgeCount: Number(e.target.value) })}>
               <option value={5}>5 giám định</option>
-              <option value={4}>4 giám định</option>
+              <option value={3}>3 giám định</option>
             </select>
           ) : null}
           </div>

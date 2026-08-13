@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { socket } from '../socket.js';
 import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
@@ -26,12 +26,14 @@ function RefereeSideCard({ match, side }) {
   const name = isRed ? match.redName : match.blueName;
   const score = isRed ? match.redScore : match.blueScore;
   const stats = sideStats(match, side);
+  const medicalSeconds = Number(match?.medicalTimers?.[side] || 0);
 
   return (
     <section className={`referee-side-card ${isRed ? 'referee-red' : 'referee-blue'}`}>
       <div className="referee-unit-name">{unit || 'Chưa có đơn vị'}</div>
       <div className="referee-score-number">{score}</div>
       <div className="referee-athlete-name">{name}</div>
+      {medicalSeconds > 0 ? <div className="medical-countdown">Y TẾ · {formatTime(medicalSeconds)}</div> : null}
       <div className="referee-stats-row">
         {stats.map((item) => (
           <div className="referee-stat" key={item.label}>
@@ -47,17 +49,9 @@ function RefereeSideCard({ match, side }) {
 export default function FightingRefereePage() {
   const { areaId } = useParams();
   const { state, error } = useAreaState(areaId);
-  const [manualSeconds, setManualSeconds] = useState(120);
-  const [breakSeconds, setBreakSeconds] = useState(45);
   const match = state?.currentFightMatch;
   const matches = useMemo(() => [...(state?.fightMatches || [])].sort((a, b) => a.orderNo - b.orderNo), [state]);
   const screenUrl = `${window.location.origin}/fighting/area/${areaId}/screen`;
-
-  useEffect(() => {
-    if (!match) return;
-    setManualSeconds(Number(match.remainingSeconds ?? match.roundSeconds ?? 120));
-    setBreakSeconds(Number(match.breakSeconds ?? 45));
-  }, [match?.id]);
 
   function emit(event, payload = {}) {
     socket.emit(event, { areaId, ...payload });
@@ -72,15 +66,25 @@ export default function FightingRefereePage() {
     alert('Đã copy link màn hình tổng điểm');
   }
 
+  const medicalActive = Number(match?.medicalTimers?.red || 0) > 0 || Number(match?.medicalTimers?.blue || 0) > 0;
+  const isRunning = ['running', 'golden'].includes(match?.status);
+  const mainControl = medicalActive
+    ? { label: 'Đang y tế', event: null }
+    : isRunning
+      ? { label: 'Tạm dừng', event: 'fight:pause' }
+      : match?.status === 'paused'
+        ? { label: 'Tiếp tục', event: 'fight:resume' }
+        : { label: 'Bắt đầu', event: 'fight:start' };
+
   return (
     <div className="public-page referee-page">
       <PageHeader
         title={`Tổng trọng tài - ${state?.area?.name || areaId}`}
-        subtitle="Tổng trọng tài cố định theo sân, không nằm trong 5 giám định, điều khiển trận và chia sẻ màn tổng điểm."
+        subtitle={`Tổng trọng tài cố định theo sân, không nằm trong ${state?.area?.judgeCount || 5} giám định, điều khiển trận và chia sẻ màn tổng điểm.`}
         actions={<button className="btn btn-primary" onClick={copyScreenUrl}>Chia sẻ màn tổng điểm</button>}
       />
       {error ? <div className="alert">{error}</div> : null}
-      <div className="referee-grid">
+      <div className="referee-operation-grid">
         <Card className="score-board-card">
           {match ? (
             <>
@@ -117,51 +121,18 @@ export default function FightingRefereePage() {
             </>
           ) : <p>Chưa chọn trận.</p>}
         </Card>
-        <Card>
-          <h2>Danh sách giám định</h2>
-          <div className="judge-slot-grid">
-            {Object.values(state?.area?.judgeSlots || {}).map((slot) => (
-              <div className="judge-slot" key={slot.judgeNo}>
-                <strong>GĐ {slot.judgeNo}</strong>
-                <StatusBadge tone={slot.status === 'connected' ? 'success' : 'neutral'}>{statusLabel(slot.status)}</StatusBadge>
-                <small>{slot.name || 'Chưa có'}</small>
-                <button className="btn btn-small" onClick={() => emit('referee:reset-judge', { judgeNo: slot.judgeNo })}>Reset</button>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      <div className="two-col">
-        <Card>
+        <div className="referee-operation-controls">
+        <Card className="referee-control-card">
           <h2>Điều khiển trận</h2>
           <div className="button-grid">
-            <button className="btn btn-primary" onClick={() => emit('fight:start')}>Bắt đầu</button>
-            <button className="btn" onClick={() => emit('fight:pause')}>Tạm dừng</button>
-            <button className="btn" onClick={() => emit('fight:resume')}>Tiếp tục</button>
+            <button className="btn btn-primary main-match-control" disabled={!match || !mainControl.event} onClick={() => mainControl.event && emit(mainControl.event)}>{mainControl.label}</button>
             <button className="btn" onClick={() => emit('fight:next-round')}>Sang hiệp</button>
             <button className="btn" onClick={() => emit('fight:end')}>Kết thúc</button>
             <button className="btn" onClick={() => emit('fight:skip')}>Tạm bỏ qua</button>
-            <button className="btn" onClick={() => emit('fight:undo')}>Hoàn tác điểm cuối</button>
-          </div>
-          <div className="timer-settings-grid">
-            <label className="field-label">
-              <span>Thời gian hiện tại (giây)</span>
-              <div className="inline-form compact-form">
-                <input type="number" min="0" value={manualSeconds} onChange={(e) => setManualSeconds(Number(e.target.value))} />
-                <button className="btn" type="button" onClick={() => emit('fight:set-time', { seconds: manualSeconds })}>Chỉnh thời gian</button>
-              </div>
-            </label>
-            <label className="field-label">
-              <span>Nghỉ giữa hiệp (giây)</span>
-              <div className="inline-form compact-form">
-                <input type="number" min="0" value={breakSeconds} onChange={(e) => setBreakSeconds(Number(e.target.value))} />
-                <button className="btn" type="button" onClick={() => emit('fight:set-break-time', { seconds: breakSeconds })}>Lưu giờ nghỉ</button>
-              </div>
-            </label>
+            <button className="btn" onClick={() => emit('fight:undo')}>Hoàn tác hành động</button>
           </div>
         </Card>
-        <Card>
+        <Card className="referee-control-card referee-score-actions">
           <h2>Cộng/trừ trực tiếp</h2>
           <div className="manual-score-grid">
             <button className="btn red-button" onClick={() => emit('fight:manual-score', { side: 'red', points: 1 })}>Đỏ +1</button>
@@ -176,9 +147,9 @@ export default function FightingRefereePage() {
           <h3>Nhắc lỗi / y tế</h3>
           <div className="manual-score-grid">
             <button className="btn" onClick={() => emit('fight:reminder', { side: 'red', kind: 'fault' })}>Đỏ nhắc lỗi</button>
-            <button className="btn" onClick={() => emit('fight:reminder', { side: 'red', kind: 'medical' })}>Đỏ nhắc y tế</button>
+            <button className="btn" onClick={() => emit('fight:reminder', { side: 'red', kind: 'medical' })}>Đỏ y tế 30s</button>
             <button className="btn" onClick={() => emit('fight:reminder', { side: 'blue', kind: 'fault' })}>Xanh nhắc lỗi</button>
-            <button className="btn" onClick={() => emit('fight:reminder', { side: 'blue', kind: 'medical' })}>Xanh nhắc y tế</button>
+            <button className="btn" onClick={() => emit('fight:reminder', { side: 'blue', kind: 'medical' })}>Xanh y tế 30s</button>
           </div>
           <h3>Chiến thắng trực tiếp</h3>
           <div className="manual-score-grid two">
@@ -186,6 +157,7 @@ export default function FightingRefereePage() {
             <button className="btn blue-button" onClick={() => emit('fight:win', { winner: 'blue' })}>Xanh thắng</button>
           </div>
         </Card>
+        </div>
       </div>
 
       <Card>
@@ -205,6 +177,19 @@ export default function FightingRefereePage() {
         <h2>Lịch sử điểm</h2>
         <div className="history-list">
           {[...(match?.history || [])].reverse().slice(0, 12).map((item) => <div key={item.id}>{item.label}</div>)}
+        </div>
+      </Card>
+      <Card className="referee-judges-last">
+        <h2>Danh sách giám định</h2>
+        <div className="judge-slot-grid">
+          {Object.values(state?.area?.judgeSlots || {}).map((slot) => (
+            <div className="judge-slot" key={slot.judgeNo}>
+              <strong>GĐ {slot.judgeNo}</strong>
+              <StatusBadge tone={slot.status === 'connected' ? 'success' : 'neutral'}>{statusLabel(slot.status)}</StatusBadge>
+              <small>{slot.name || 'Chưa có'}</small>
+              <button className="btn btn-small" onClick={() => emit('referee:reset-judge', { judgeNo: slot.judgeNo })}>Reset</button>
+            </div>
+          ))}
         </div>
       </Card>
     </div>
