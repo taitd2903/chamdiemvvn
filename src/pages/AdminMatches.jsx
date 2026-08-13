@@ -6,7 +6,7 @@ import { statusLabel } from '../components/format.js';
 import { athleteDisplay, contentEligibilityText, deriveAgeGroup, genderLabel, getContentWeightClassOptions, getUniqueValues, matchesContentCriteria, normalizeText } from '../components/athleteMeta.js';
 
 const blankFormEntry = { areaId: '', contentId: '', athleteId: '', orderNo: 1 };
-const blankFightMatch = { areaId: '', contentId: '', redAthleteId: '', blueAthleteId: '', orderNo: 1, maxRounds: 3, roundSeconds: 120, breakSeconds: 45 };
+const blankFightMatch = { areaId: '', contentId: '', redAthleteId: '', blueAthleteId: '', orderNo: 1 };
 const blankEntryFilters = { keyword: '', areaId: '', contentId: '', unit: '', gender: '', ageGroup: '', weightClass: '', status: '' };
 const blankFightFilters = { keyword: '', areaId: '', contentId: '', unit: '', gender: '', ageGroup: '', weightClass: '', status: '' };
 
@@ -37,6 +37,7 @@ export default function AdminMatches() {
 
   const selectedFormContent = contents.find((content) => content.id === formEntry.contentId) || null;
   const selectedFightContent = contents.find((content) => content.id === fightMatch.contentId) || null;
+  const selectedFightArea = areas.find((area) => area.id === fightMatch.areaId) || null;
 
   const formCandidateRegs = useMemo(() => regsWithDetails.filter((registration) => {
     if (!registration.athlete || !registration.content) return false;
@@ -182,11 +183,7 @@ export default function AdminMatches() {
               {fightCandidateRegs.map((registration) => <option key={registration.id} value={registration.athleteId} disabled={registration.athleteId === fightMatch.redAthleteId}>{athleteDisplay(registration.athlete)}</option>)}
             </select>
             <input type="number" min="1" placeholder="Thứ tự trận" value={fightMatch.orderNo} onChange={(e) => setFightMatch({ ...fightMatch, orderNo: Number(e.target.value) })} />
-            <div className="form-grid-3">
-              <label className="field-label"><span>Số hiệp</span><input type="number" min="1" value={fightMatch.maxRounds} onChange={(e) => setFightMatch({ ...fightMatch, maxRounds: Number(e.target.value) })} /></label>
-              <label className="field-label"><span>Thời gian/hiệp (giây)</span><input type="number" min="1" value={fightMatch.roundSeconds} onChange={(e) => setFightMatch({ ...fightMatch, roundSeconds: Number(e.target.value) })} /></label>
-              <label className="field-label"><span>Nghỉ giữa hiệp (giây)</span><input type="number" min="0" value={fightMatch.breakSeconds} onChange={(e) => setFightMatch({ ...fightMatch, breakSeconds: Number(e.target.value) })} /></label>
-            </div>
+            {selectedFightArea ? <p className="muted">Cấu hình sân: {selectedFightArea.maxRounds || 3} hiệp · {selectedFightArea.roundSeconds || 120} giây/hiệp · nghỉ {selectedFightArea.breakSeconds ?? 45} giây.</p> : null}
             {selectedFightContent ? <p className="muted">Tiêu chí: {contentEligibilityText(selectedFightContent) || 'Không giới hạn'}</p> : null}
             <button className="btn btn-primary" disabled={!fightMatch.areaId || !fightMatch.contentId || !fightMatch.redAthleteId || !fightMatch.blueAthleteId}>Tạo trận</button>
           </form>
