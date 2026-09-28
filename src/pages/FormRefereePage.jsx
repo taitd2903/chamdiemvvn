@@ -4,6 +4,7 @@ import { socket } from '../socket.js';
 import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
 import { useAreaState } from '../components/hooks.js';
 import { statusLabel } from '../components/format.js';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 function getScoreTone(current, score) {
   if (score === undefined || score === null || current?.finalScore === null) return '';
@@ -107,6 +108,7 @@ export default function FormRefereePage() {
           <button className="btn" disabled={currentIndex === -1 || currentIndex >= entries.length - 1} onClick={() => selectRelative(1)}>Sau →</button>
         </div>
 
+        {current ? <div className="form-athlete-photo"><AthletePhoto athlete={current} size="large" /></div> : null}
         <div className="form-athlete-info">
           <p>🥋 <span>VĐV/Đội:</span> <strong>{current?.participantName || 'Chưa chọn lượt thi'}</strong></p>
           <p>🏫 <span>Đơn vị:</span> <strong>{current?.participantUnit || '—'}</strong></p>
@@ -180,7 +182,7 @@ export default function FormRefereePage() {
           <div className="queue-list compact-queue">
             {entries.map((entry) => (
               <div className={`queue-row ${current?.id === entry.id ? 'active' : ''}`} key={entry.id}>
-                <span>{entry.orderNo}. {entry.participantName}</span>
+                <span className="athlete-with-photo"><AthletePhoto athlete={entry} size="small" />{entry.orderNo}. {entry.participantName}</span>
                 <StatusBadge>{statusLabel(entry.status)}</StatusBadge>
                 <strong>{entry.finalScore ?? '-'}</strong>
                 <div className="row-actions">

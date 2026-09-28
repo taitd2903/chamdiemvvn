@@ -93,6 +93,16 @@ button, input, select { font: inherit; }
 .inline-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .stack-form { display: grid; gap: 10px; }
 input, select { min-height: 42px; border: 1px solid var(--border); border-radius: 12px; padding: 0 12px; background: #fff; }
+.athlete-photo { display: inline-grid; place-items: center; flex: 0 0 auto; object-fit: cover; border-radius: 50%; border: 2px solid #dbe3ef; background: #e8eef8; color: #3157d5; font-weight: 900; }
+.athlete-photo-small { width: 38px; height: 38px; }
+.athlete-photo-medium { width: 64px; height: 64px; }
+.athlete-photo-large { width: 150px; height: 150px; }
+.athlete-photo-placeholder { text-align: center; }
+.photo-picker { display: grid; gap: 6px; color: var(--muted); font-weight: 700; }
+.photo-picker input { padding: 8px; }
+.photo-preview, .photo-row-actions, .athlete-with-photo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.photo-row-actions { margin-top: 6px; }
+.form-athlete-photo { display: flex; justify-content: center; margin: 12px auto; }
 .btn { min-height: 40px; border: 1px solid var(--border); border-radius: 12px; padding: 0 14px; background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .btn:hover { border-color: #cbd5e1; }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }

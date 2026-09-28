@@ -65,6 +65,7 @@ export const api = {
 
   getAthletes: () => request('/api/athletes'),
   createAthlete: (payload) => request('/api/athletes', { method: 'POST', body: JSON.stringify(payload) }),
+  updateAthlete: (id, payload) => request(`/api/athletes/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   deleteAthlete: (id) => request(`/api/athletes/${id}`, { method: 'DELETE' }),
 
   getRegistrations: () => request('/api/registrations'),

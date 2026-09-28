@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { socket } from '../socket.js';
 import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
@@ -65,6 +65,7 @@ function RefereeSideCard({ match, side }) {
 export default function FightingRefereePage() {
   const { areaId } = useParams();
   const { state, error } = useAreaState(areaId);
+  const [matchNumber, setMatchNumber] = useState('');
   const match = state?.currentFightMatch;
   const matches = useMemo(
     () => [...(state?.fightMatches || [])]
@@ -75,8 +76,8 @@ export default function FightingRefereePage() {
   const nextMatch = useMemo(() => {
     if (!match || match.status !== 'finished') return null;
     const currentIndex = matches.findIndex((item) => item.id === match.id);
-    return matches.slice(Math.max(0, currentIndex + 1)).find((item) => ['pending', 'skipped'].includes(item.status)) || null;
-  }, [match, matches]);
+    return matches.slice(Math.max(0, currentIndex + 1)).find((item) => ['pending', 'skipped'].includes(item.status) && (!item.activeAreaId || item.activeAreaId === areaId)) || null;
+  }, [match, matches, areaId]);
   const screenUrl = `${window.location.origin}/fighting/area/${areaId}/screen`;
 
   function emit(event, payload = {}) {
@@ -85,6 +86,13 @@ export default function FightingRefereePage() {
 
   function selectMatch(matchId) {
     socket.emit('fight:select-match', { areaId, matchId });
+  }
+
+  function selectByNumber(event) {
+    event.preventDefault();
+    const selected = matches.find((item) => Number(item.orderNo) === Number(matchNumber));
+    if (!selected) return alert(`Không tìm thấy trận số ${matchNumber}`);
+    selectMatch(selected.id);
   }
 
   function copyScreenUrl() {
@@ -169,6 +177,7 @@ export default function FightingRefereePage() {
             <button className="btn" disabled={!match || match.testMode || ['pending', 'finished', 'cancelled', 'decision'].includes(match.status)} onClick={() => emit('fight:next-round')}>Sang hiệp</button>
             <button className="btn" disabled={!match || match.round <= 1 || ['finished', 'cancelled', 'decision'].includes(match.status)} onClick={() => emit('fight:previous-round')}>Quay lại hiệp trước</button>
             <button className="btn" onClick={() => emit('fight:undo')}>Hoàn tác hành động</button>
+            {match && !match.hasStarted && ['pending', 'skipped'].includes(match.status) ? <button className="btn" onClick={() => emit('fight:skip')}>Trả trận về danh sách chung</button> : null}
             {match?.status === 'finished' ? <button className="btn btn-primary next-fight-control" disabled={!nextMatch} onClick={() => nextMatch && selectMatch(nextMatch.id)}>{nextMatch ? `Chuyển sang trận ${nextMatch.orderNo}` : 'Đã hết trận tại sân'}</button> : null}
           </div>
         </Card>
@@ -223,14 +232,19 @@ export default function FightingRefereePage() {
       </div>
 
       <Card className="referee-queue-card">
-        <h2>Danh sách trận sân này</h2>
+        <h2>Danh sách trận toàn giải</h2>
+        <form className="inline-form" onSubmit={selectByNumber}>
+          <input type="number" min="1" placeholder="Nhập số trận" value={matchNumber} onChange={(event) => setMatchNumber(event.target.value)} />
+          <button className="btn btn-primary" disabled={!matchNumber}>Nhận trận</button>
+        </form>
+        <p className="note">Sân có thể nhận bất kỳ trận nào chưa được sân khác giữ.</p>
         <div className="queue-list">
           {matches.map((item) => (
             <div className={`queue-row ${match?.id === item.id ? 'active' : ''}`} key={item.id}>
               <span>Trận {item.orderNo} · {item.redName} vs {item.blueName}</span>
-              <StatusBadge>{statusLabel(item.status)}</StatusBadge>
+              <StatusBadge>{item.activeAreaId && item.activeAreaId !== areaId ? `Đang tại ${state?.allAreas?.find?.((row) => row.id === item.activeAreaId)?.name || item.activeAreaId}` : statusLabel(item.status)}</StatusBadge>
               <strong>{item.redScore} - {item.blueScore}</strong>
-              <button className="btn btn-small" onClick={() => selectMatch(item.id)}>Chọn trận</button>
+              <button className="btn btn-small" disabled={Boolean(item.activeAreaId && item.activeAreaId !== areaId) || ['finished', 'cancelled'].includes(item.status)} onClick={() => selectMatch(item.id)}>Chọn trận</button>
             </div>
           ))}
         </div>

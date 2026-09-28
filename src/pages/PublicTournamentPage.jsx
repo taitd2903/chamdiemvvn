@@ -4,6 +4,7 @@ import { api } from '../api.js';
 import { socket } from '../socket.js';
 import { Card, StatusBadge } from '../components/Layout.jsx';
 import { SigmaMatchNode } from './SigmaPage.jsx';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 const medalName = { gold: '🥇 Vàng', silver: '🥈 Bạc', bronze: '🥉 Đồng' };
 
@@ -60,7 +61,7 @@ export default function PublicTournamentPage({ embedded = false }) {
         <div className="table-wrap"><table><thead><tr><th>VĐV</th><th>Nội dung tham gia</th><th>Thành tích</th></tr></thead><tbody>{unitAthletes.map((athlete) => {
           const entries = unitParticipants.filter((row) => row.athleteId === athlete.athleteId);
           const achievements = unitMedals.filter((row) => row.athleteId === athlete.athleteId);
-          return <tr key={athlete.athleteId}><td><strong>{athlete.name}</strong></td><td>{entries.map((row) => row.contentName).join(', ')}</td><td>{achievements.length ? achievements.map((row) => `${medalName[row.type]} – ${contentName(row.contentId)}`).join(', ') : 'Chưa có huy chương'}</td></tr>;
+          return <tr key={athlete.athleteId}><td><div className="athlete-with-photo"><AthletePhoto athlete={athlete} size="small" /><strong>{athlete.name}</strong></div></td><td>{entries.map((row) => row.contentName).join(', ')}</td><td>{achievements.length ? achievements.map((row) => `${medalName[row.type]} – ${contentName(row.contentId)}`).join(', ') : 'Chưa có huy chương'}</td></tr>;
         })}</tbody></table></div>
       </Card> : null}
     </> : null}
@@ -74,7 +75,7 @@ export default function PublicTournamentPage({ embedded = false }) {
     </> : null}
 
     {view === 'medals' ? <Card><h2>Tất cả huy chương</h2><div className="table-wrap"><table><thead><tr><th>Huy chương</th><th>VĐV</th><th>Đơn vị</th><th>Nội dung</th><th>Môn</th></tr></thead><tbody>
-      {(data?.medals || []).map((row, index) => <tr key={`${row.contentId}-${row.type}-${row.athleteId}-${index}`}><td><strong>{medalName[row.type]}</strong></td><td>{row.name}</td><td><button className="table-link" onClick={() => openUnit(row.unit)}>{row.unit}</button></td><td><button className="table-link" onClick={() => openContent(row.contentId)}>{contentName(row.contentId)}</button></td><td>{row.discipline === 'form' ? 'Quyền' : 'Đối kháng'}</td></tr>)}
+      {(data?.medals || []).map((row, index) => <tr key={`${row.contentId}-${row.type}-${row.athleteId}-${index}`}><td><strong>{medalName[row.type]}</strong></td><td><div className="athlete-with-photo"><AthletePhoto athlete={row} size="small" />{row.name}</div></td><td><button className="table-link" onClick={() => openUnit(row.unit)}>{row.unit}</button></td><td><button className="table-link" onClick={() => openContent(row.contentId)}>{contentName(row.contentId)}</button></td><td>{row.discipline === 'form' ? 'Quyền' : 'Đối kháng'}</td></tr>)}
     </tbody></table></div></Card> : null}
 
     {!embedded && view === 'sigma' ? <><div className="statistics-filters sigma-public-filter"><label>Hạng cân<select value={sigmaWeight} onChange={(event) => setSigmaWeight(event.target.value)}><option value="all">Tất cả hạng cân</option>{weightClasses.map((weight) => <option key={weight} value={weight}>{weight}</option>)}</select></label></div>{sigmaBrackets.map((bracket) => <section className="sigma-board public-sigma-board" key={bracket.id}>

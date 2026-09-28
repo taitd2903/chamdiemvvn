@@ -4,6 +4,7 @@ import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
 import { useGlobalState } from '../components/hooks.js';
 import { statusLabel } from '../components/format.js';
 import { athleteDisplay, contentEligibilityText, deriveAgeGroup, genderLabel, getContentWeightClassOptions, getUniqueValues, matchesContentCriteria, normalizeText } from '../components/athleteMeta.js';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 const blankFormEntry = { areaId: '', contentId: '', athleteId: '', orderNo: 1 };
 const blankFightMatch = { areaId: '', contentId: '', redAthleteId: '', blueAthleteId: '', orderNo: 1 };
@@ -38,7 +39,6 @@ export default function AdminMatches() {
 
   const selectedFormContent = contents.find((content) => content.id === formEntry.contentId) || null;
   const selectedFightContent = contents.find((content) => content.id === fightMatch.contentId) || null;
-  const selectedFightArea = areas.find((area) => area.id === fightMatch.areaId) || null;
 
   const formCandidateRegs = useMemo(() => regsWithDetails.filter((registration) => {
     if (!registration.athlete || !registration.content) return false;
@@ -79,7 +79,7 @@ export default function AdminMatches() {
     return fightMatches.filter((match) => {
       const text = normalizeText(`${match.redName} ${match.blueName} ${match.redUnit} ${match.blueUnit} ${match.redAgeGroup} ${match.blueAgeGroup} ${match.redWeightClass} ${match.blueWeightClass}`);
       if (keyword && !text.includes(keyword)) return false;
-      if (fightFilters.areaId && match.areaId !== fightFilters.areaId) return false;
+      if (fightFilters.areaId && match.activeAreaId !== fightFilters.areaId && match.completedAreaId !== fightFilters.areaId) return false;
       if (fightFilters.contentId && match.contentId !== fightFilters.contentId) return false;
       if (fightFilters.unit && match.redUnit !== fightFilters.unit && match.blueUnit !== fightFilters.unit) return false;
       if (fightFilters.gender && match.redGender !== fightFilters.gender && match.blueGender !== fightFilters.gender) return false;
@@ -171,6 +171,7 @@ export default function AdminMatches() {
               {formCandidateRegs.map((registration) => <option key={registration.id} value={registration.athleteId}>{athleteDisplay(registration.athlete)}</option>)}
             </select>
             <input type="number" min="1" placeholder="Thứ tự lượt" value={formEntry.orderNo} onChange={(e) => setFormEntry({ ...formEntry, orderNo: Number(e.target.value) })} />
+            {athletes.find((row) => row.id === formEntry.athleteId) ? <div className="athlete-with-photo"><AthletePhoto athlete={athletes.find((row) => row.id === formEntry.athleteId)} /><strong>{athletes.find((row) => row.id === formEntry.athleteId)?.name}</strong></div> : null}
             {selectedFormContent ? <p className="muted">Tiêu chí: {contentEligibilityText(selectedFormContent) || 'Không giới hạn'}</p> : null}
             <button className="btn btn-primary" disabled={!formEntry.areaId || !formEntry.contentId || !formEntry.athleteId}>Tạo lượt</button>
           </form>
@@ -178,10 +179,6 @@ export default function AdminMatches() {
         <Card>
           <h2>Tạo trận Đối kháng</h2>
           <form className="stack-form" onSubmit={createFightMatch}>
-            <select value={fightMatch.areaId} onChange={(e) => setFightMatch({ ...fightMatch, areaId: e.target.value })}>
-              <option value="">Chọn sân Đối kháng</option>
-              {fightAreas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
-            </select>
             <select value={fightMatch.contentId} onChange={(e) => setFightMatch({ ...fightMatch, contentId: e.target.value, redAthleteId: '', blueAthleteId: '' })}>
               <option value="">Chọn nội dung Đối kháng</option>
               {fightContents.map((content) => <option key={content.id} value={content.id}>{content.name}{contentEligibilityText(content) ? ` (${contentEligibilityText(content)})` : ''}</option>)}
@@ -195,9 +192,10 @@ export default function AdminMatches() {
               {fightCandidateRegs.map((registration) => <option key={registration.id} value={registration.athleteId} disabled={registration.athleteId === fightMatch.redAthleteId}>{athleteDisplay(registration.athlete)}</option>)}
             </select>
             <input type="number" min="1" placeholder="Thứ tự trận" value={fightMatch.orderNo} onChange={(e) => setFightMatch({ ...fightMatch, orderNo: Number(e.target.value) })} />
-            {selectedFightArea ? <p className="muted">Cấu hình sân: {selectedFightArea.maxRounds || 3} hiệp · {selectedFightArea.roundSeconds || 120} giây/hiệp · nghỉ {selectedFightArea.breakSeconds ?? 45} giây.</p> : null}
+            <div className="athlete-with-photo">{[fightMatch.redAthleteId, fightMatch.blueAthleteId].map((id) => athletes.find((row) => row.id === id)).filter(Boolean).map((athlete) => <span className="athlete-with-photo" key={athlete.id}><AthletePhoto athlete={athlete} size="small" /><strong>{athlete.name}</strong></span>)}</div>
+            <p className="muted">Trận không gắn cố định với sân. Tổng trọng tài của bất kỳ sân Đối kháng nào cũng có thể nhận trận từ danh sách chung.</p>
             {selectedFightContent ? <p className="muted">Tiêu chí: {contentEligibilityText(selectedFightContent) || 'Không giới hạn'}</p> : null}
-            <button className="btn btn-primary" disabled={!fightMatch.areaId || !fightMatch.contentId || !fightMatch.redAthleteId || !fightMatch.blueAthleteId}>Tạo trận</button>
+            <button className="btn btn-primary" disabled={!fightMatch.contentId || !fightMatch.redAthleteId || !fightMatch.blueAthleteId}>Tạo trận</button>
           </form>
         </Card>
       </div>
@@ -219,10 +217,11 @@ export default function AdminMatches() {
         <h2>Danh sách lượt Quyền</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Thứ tự</th><th>Sân</th><th>Nội dung</th><th>Người/đội</th><th>Đơn vị</th><th>Giới tính</th><th>Năm sinh / Lứa tuổi</th><th>Cân nặng / Hạng cân</th><th>Trạng thái</th><th>Điểm cuối</th><th></th></tr></thead>
+            <thead><tr><th>Ảnh</th><th>Thứ tự</th><th>Sân</th><th>Nội dung</th><th>Người/đội</th><th>Đơn vị</th><th>Giới tính</th><th>Năm sinh / Lứa tuổi</th><th>Cân nặng / Hạng cân</th><th>Trạng thái</th><th>Điểm cuối</th><th></th></tr></thead>
             <tbody>
               {filteredFormEntries.map((entry) => (
                 <tr key={entry.id}>
+                  <td><AthletePhoto athlete={entry} size="small" /></td>
                   <td>{entry.orderNo}</td>
                   <td>{areas.find((a) => a.id === entry.areaId)?.name}</td>
                   <td>{contents.find((c) => c.id === entry.contentId)?.name}</td>
@@ -236,7 +235,7 @@ export default function AdminMatches() {
                   <td className="row-actions"><button className="btn" onClick={() => selectForm(entry.id)}>Chọn thi</button><button className="btn" onClick={() => skipForm(entry.id)}>Tạm bỏ qua</button></td>
                 </tr>
               ))}
-              {filteredFormEntries.length === 0 ? <tr><td colSpan="11" className="empty">Không có lượt Quyền phù hợp bộ lọc.</td></tr> : null}
+              {filteredFormEntries.length === 0 ? <tr><td colSpan="12" className="empty">Không có lượt Quyền phù hợp bộ lọc.</td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -264,7 +263,7 @@ export default function AdminMatches() {
               {filteredFightMatches.map((match) => (
                 <tr key={match.id}>
                   <td>{match.orderNo}</td>
-                  <td>{areas.find((a) => a.id === match.areaId)?.name}</td>
+                  <td>{areas.find((a) => a.id === (match.activeAreaId || match.completedAreaId))?.name || 'Chưa nhận sân'}</td>
                   <td>{contents.find((c) => c.id === match.contentId)?.name}</td>
                   <td><strong className="red-text">{match.redName}</strong><div className="muted">{match.redUnit || '-'} · {genderLabel(match.redGender)} · {match.redAgeGroup || deriveAgeGroup(match.redBirthYear) || '-'} · {match.redWeightKg ? `${match.redWeightKg}kg thực tế` : '-'} {match.redWeightClass ? `· Hạng ${match.redWeightClass}` : ''}</div></td>
                   <td><strong className="blue-text">{match.blueName}</strong><div className="muted">{match.blueUnit || '-'} · {genderLabel(match.blueGender)} · {match.blueAgeGroup || deriveAgeGroup(match.blueBirthYear) || '-'} · {match.blueWeightKg ? `${match.blueWeightKg}kg thực tế` : '-'} {match.blueWeightClass ? `· Hạng ${match.blueWeightClass}` : ''}</div></td>

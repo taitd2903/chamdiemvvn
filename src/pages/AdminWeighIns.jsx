@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
 import { useAuth } from '../auth.jsx';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 function statusText(weighIn) {
   if (!weighIn || weighIn.status === 'pending') return 'Chưa cân';
@@ -32,6 +33,7 @@ function WeighRow({ row, onSaved, onError, isAdmin }) {
   }
   const tone = row.weighIn?.status === 'passed' ? 'success' : ['under', 'over'].includes(row.weighIn?.status) ? 'danger' : 'neutral';
   return <tr>
+    <td><AthletePhoto athlete={row.athlete} /></td>
     <td><strong>{row.athlete.name}</strong><div className="muted">{row.athlete.unit || '—'}</div></td>
     <td>{row.content.name}</td>
     <td>{row.content.weightMin ?? '…'}–{row.content.weightMax ?? '…'} kg</td>
@@ -69,9 +71,9 @@ export default function AdminWeighIns() {
       <select value={filters.unit} onChange={(e) => setFilters({ ...filters, unit: e.target.value })}><option value="">Tất cả đơn vị</option>{units.map((unit) => <option key={unit}>{unit}</option>)}</select>
       <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}><option value="">Tất cả trạng thái</option><option value="pending">Chưa cân</option><option value="passed">Đủ cân</option><option value="under">Thiếu cân</option><option value="over">Thừa cân</option></select>
     </div></Card>
-    <Card><h2>Danh sách cân ({filtered.length})</h2><div className="table-wrap"><table><thead><tr><th>VĐV / Đơn vị</th><th>Nội dung</th><th>Hạng cân</th><th>Cân đăng ký</th><th>Cân chính thức</th><th>Ghi chú</th><th>Kết luận</th><th></th></tr></thead><tbody>
+    <Card><h2>Danh sách cân ({filtered.length})</h2><div className="table-wrap"><table><thead><tr><th>Ảnh</th><th>VĐV / Đơn vị</th><th>Nội dung</th><th>Hạng cân</th><th>Cân đăng ký</th><th>Cân chính thức</th><th>Ghi chú</th><th>Kết luận</th><th></th></tr></thead><tbody>
       {filtered.map((row) => <WeighRow key={`${row.athlete.id}:${row.content.id}`} row={row} onSaved={load} onError={setError} isAdmin={user?.role === 'admin'} />)}
-      {!filtered.length ? <tr><td colSpan="8" className="empty">Không có VĐV phù hợp bộ lọc.</td></tr> : null}
+      {!filtered.length ? <tr><td colSpan="9" className="empty">Không có VĐV phù hợp bộ lọc.</td></tr> : null}
     </tbody></table></div></Card>
   </>;
 }

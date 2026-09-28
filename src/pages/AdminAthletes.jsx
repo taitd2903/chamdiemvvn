@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { Card, PageHeader } from '../components/Layout.jsx';
 import { useGlobalState } from '../components/hooks.js';
 import { useAuth } from '../auth.jsx';
+import { AthletePhoto, prepareAthletePhoto } from '../components/AthletePhoto.jsx';
 import {
   athleteMatchesWeightClass,
   deriveAgeGroup,
@@ -15,7 +16,7 @@ import {
   normalizeText
 } from '../components/athleteMeta.js';
 
-const blankForm = { name: '', unit: '', birthYear: '', gender: '', weightKg: '' };
+const blankForm = { name: '', unit: '', birthYear: '', gender: '', weightKg: '', photoData: '' };
 const blankFilters = { keyword: '', unit: '', gender: '', ageGroup: '', weightClass: '', birthYear: '' };
 
 export default function AdminAthletes() {
@@ -24,6 +25,7 @@ export default function AdminAthletes() {
   const { state, error, reload, setError } = useGlobalState();
   const [form, setForm] = useState(blankForm);
   const [filters, setFilters] = useState(blankFilters);
+  const [photoPreview, setPhotoPreview] = useState('');
 
   const athletes = state?.athletes || [];
   const contents = state?.contents || [];
@@ -60,10 +62,32 @@ export default function AdminAthletes() {
         ageGroup: deriveAgeGroup(form.birthYear)
       });
       setForm(blankForm);
+      setPhotoPreview('');
       reload();
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  async function choosePhoto(event) {
+    try {
+      const photoData = await prepareAthletePhoto(event.target.files?.[0]);
+      setForm({ ...form, photoData });
+      setPhotoPreview(photoData);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function changePhoto(athlete, file) {
+    try {
+      const photoData = await prepareAthletePhoto(file);
+      await api.updateAthlete(athlete.id, { photoData });
+      reload();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function removePhoto(athlete) {
+    try { await api.updateAthlete(athlete.id, { removePhoto: true }); reload(); }
+    catch (err) { setError(err.message); }
   }
 
   async function remove(id) {
@@ -93,7 +117,9 @@ export default function AdminAthletes() {
             </select>
             <input type="number" placeholder="Năm sinh" value={form.birthYear} onChange={(e) => setForm({ ...form, birthYear: e.target.value })} />
             <input type="number" step="0.1" placeholder="Cân nặng thực tế (kg)" value={form.weightKg} onChange={(e) => setForm({ ...form, weightKg: e.target.value })} />
+            <label className="photo-picker"><span>Ảnh thí sinh</span><input type="file" accept="image/jpeg,image/png,image/webp" onChange={choosePhoto} /></label>
           </div>
+          {photoPreview ? <div className="photo-preview"><AthletePhoto athlete={{ name: form.name, photoUrl: photoPreview }} size="large" /><button type="button" className="btn btn-small" onClick={() => { setPhotoPreview(''); setForm({ ...form, photoData: '' }); }}>Bỏ ảnh</button></div> : null}
           <div className="derived-preview">
             <strong>Lứa tuổi tự quy đổi:</strong> {deriveAgeGroup(form.birthYear) || 'Nhập năm sinh để tự quy đổi'}
           </div>
@@ -133,12 +159,13 @@ export default function AdminAthletes() {
         <h2>Danh sách thí sinh / đội</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Tên</th><th>Đơn vị</th><th>Giới tính</th><th>Năm sinh / Lứa tuổi</th><th>Cân nặng thực tế</th><th>Hạng cân phù hợp từ nội dung</th><th></th></tr></thead>
+            <thead><tr><th>Ảnh</th><th>Tên</th><th>Đơn vị</th><th>Giới tính</th><th>Năm sinh / Lứa tuổi</th><th>Cân nặng thực tế</th><th>Hạng cân phù hợp từ nội dung</th><th></th></tr></thead>
             <tbody>
               {filteredAthletes.map((athlete) => {
                 const eligibleWeights = eligibleWeightClassLabels(athlete, contents);
                 return (
                   <tr key={athlete.id}>
+                    <td><AthletePhoto athlete={athlete} /><div className="photo-row-actions"><label className="btn btn-small">Thay ảnh<input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => changePhoto(athlete, event.target.files?.[0])} /></label>{athlete.photoUrl ? <button className="btn btn-small" onClick={() => removePhoto(athlete)}>Xóa ảnh</button> : null}</div></td>
                     <td>{athlete.name}</td>
                     <td>{athlete.unit || '-'}</td>
                     <td>{genderLabel(athlete.gender)}</td>
@@ -149,7 +176,7 @@ export default function AdminAthletes() {
                   </tr>
                 );
               })}
-              {filteredAthletes.length === 0 ? <tr><td colSpan="7" className="empty">Không có thí sinh phù hợp bộ lọc.</td></tr> : null}
+              {filteredAthletes.length === 0 ? <tr><td colSpan="8" className="empty">Không có thí sinh phù hợp bộ lọc.</td></tr> : null}
             </tbody>
           </table>
         </div>

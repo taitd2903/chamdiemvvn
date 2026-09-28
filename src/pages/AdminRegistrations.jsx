@@ -5,6 +5,7 @@ import { useGlobalState } from '../components/hooks.js';
 import { typeLabel } from '../components/format.js';
 import { athleteDisplay, contentEligibilityText, contentWeightClassLabel, deriveAgeGroup, formatAgeInfo, formatRegistrationWeightInfo, genderLabel, getContentWeightClassOptions, getUniqueValues, matchesContentCriteria, normalizeText } from '../components/athleteMeta.js';
 import { useAuth } from '../auth.jsx';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 const blankFilters = { keyword: '', contentId: '', unit: '', gender: '', ageGroup: '', weightClass: '', birthYear: '' };
 
@@ -118,6 +119,7 @@ export default function AdminRegistrations() {
             <button className="btn btn-primary" disabled={locked || !form.contentId || !form.athleteId}>Đăng ký</button>
           </div>
           {selectedContent ? <p className="muted">Tiêu chí nội dung: {contentEligibilityText(selectedContent) || 'Không giới hạn'}. Danh sách thí sinh đã được lọc và loại người đã đăng ký nội dung này.</p> : null}
+          {selectedAthlete ? <div className="athlete-with-photo"><AthletePhoto athlete={selectedAthlete} /><strong>{selectedAthlete.name}</strong><span>{selectedAthlete.unit}</span></div> : null}
           {selectedContent ? <p className="muted"><strong>Giới hạn toàn đoàn:</strong> {selectedContent.type === 'form' ? (state?.settings?.formContentLimitPerUnit ? `tối đa ${state.settings.formContentLimitPerUnit} nội dung Quyền/đoàn` : 'không giới hạn nội dung Quyền') : (state?.settings?.fightingContentLimitPerUnit ? `tối đa ${state.settings.fightingContentLimitPerUnit} nội dung Đối kháng/đoàn` : 'không giới hạn nội dung Đối kháng')}{selectedAthlete ? ` · Đang đăng ký cho ${selectedAthlete.unit || 'đơn vị chưa đặt tên'}` : ''}.</p> : null}
         </form>
       </Card>
@@ -155,10 +157,11 @@ export default function AdminRegistrations() {
         <h2>Danh sách đăng ký</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Thí sinh</th><th>Đơn vị</th><th>Giới tính</th><th>Năm sinh / Lứa tuổi</th><th>Cân nặng / Hạng cân</th><th>Nội dung</th><th>Loại</th><th></th></tr></thead>
+            <thead><tr><th>Ảnh</th><th>Thí sinh</th><th>Đơn vị</th><th>Giới tính</th><th>Năm sinh / Lứa tuổi</th><th>Cân nặng / Hạng cân</th><th>Nội dung</th><th>Loại</th><th></th></tr></thead>
             <tbody>
               {filteredRegistrations.map((row) => (
                 <tr key={row.id}>
+                  <td><AthletePhoto athlete={row.athlete} size="small" /></td>
                   <td>{row.athlete?.name}</td>
                   <td>{row.athlete?.unit || '-'}</td>
                   <td>{genderLabel(row.athlete?.gender)}</td>
@@ -169,7 +172,7 @@ export default function AdminRegistrations() {
                   <td>{!locked ? <button className="btn btn-danger" onClick={() => remove(row.id)}>Xóa</button> : 'Đã chốt'}</td>
                 </tr>
               ))}
-              {filteredRegistrations.length === 0 ? <tr><td colSpan="8" className="empty">Không có đăng ký phù hợp bộ lọc.</td></tr> : null}
+              {filteredRegistrations.length === 0 ? <tr><td colSpan="9" className="empty">Không có đăng ký phù hợp bộ lọc.</td></tr> : null}
             </tbody>
           </table>
         </div>

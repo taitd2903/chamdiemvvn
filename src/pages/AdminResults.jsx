@@ -1,6 +1,7 @@
 import { Card, PageHeader, StatusBadge } from '../components/Layout.jsx';
 import { useGlobalState } from '../components/hooks.js';
 import { resultText, statusLabel } from '../components/format.js';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 export default function AdminResults() {
   const { state, error } = useGlobalState();
@@ -14,10 +15,11 @@ export default function AdminResults() {
       <Card>
         <h2>Kết quả Quyền</h2>
         <table>
-          <thead><tr><th>Nội dung</th><th>Người/đội</th><th>Điểm 5 giám định</th><th>Bỏ thấp/cao</th><th>Điểm cuối</th></tr></thead>
+          <thead><tr><th>Ảnh</th><th>Nội dung</th><th>Người/đội</th><th>Điểm 5 giám định</th><th>Bỏ thấp/cao</th><th>Điểm cuối</th></tr></thead>
           <tbody>
             {completedForms.map((entry) => (
               <tr key={entry.id}>
+                <td><AthletePhoto athlete={entry} size="small" /></td>
                 <td>{state?.contents?.find((content) => content.id === entry.contentId)?.name}</td>
                 <td>{entry.participantName}</td>
                 <td>{Object.entries(entry.scores).map(([judge, score]) => `GĐ${judge}: ${score}`).join(', ')}</td>

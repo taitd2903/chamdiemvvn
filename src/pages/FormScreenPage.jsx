@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useAreaState } from '../components/hooks.js';
+import { AthletePhoto } from '../components/AthletePhoto.jsx';
 
 function getScoreTone(current, score) {
   if (score === undefined || score === null || current?.finalScore === null) return '';
@@ -30,6 +31,7 @@ export default function FormScreenPage() {
 
       <div className="presentation-content-title">🏆 {currentContent?.name || 'CHƯA CHỌN NỘI DUNG'}</div>
 
+      {current ? <div className="form-athlete-photo"><AthletePhoto athlete={current} size="large" /></div> : null}
       <div className="form-athlete-info presentation-info">
         <p>🥋 <span>VĐV/Đội:</span> <strong>{current?.participantName || 'Chưa chọn lượt thi'}</strong></p>
         <p>🏫 <span>Đơn vị:</span> <strong>{current?.participantUnit || '—'}</strong></p>
